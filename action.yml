@@ -1,6 +1,10 @@
 name: Terraform Force Unlock
 description: Retrieves a Terraform LockID from DynamoDB and runs terraform force-unlock.
 
+branding:
+  icon: server
+  color: purple
+
 runs:
   using: composite
   steps:
