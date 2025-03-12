@@ -1,0 +1,38 @@
+name: Terraform Force Unlock
+description: Retrieves a Terraform LockID from DynamoDB and runs terraform force-unlock.
+
+runs:
+  using: composite
+  steps:
+    - name: Retrieve LockID from DynamoDB
+      id: get-lock-id
+      run: |
+        LOCK_ID=$(aws dynamodb get-item \
+          --table-name "${{ inputs.table-name }}" \
+          --key "{\"LockID\": {\"S\": \"${{ inputs.lock-id-key }}\"}}" \
+          --query 'Item.ID.S' \
+          --output text || echo "")
+
+        if [ -z "$LOCK_ID" ] || [ "$LOCK_ID" == "None" ]; then
+          echo "Error: LockID not found in DynamoDB"
+          exit 1
+        fi
+
+        echo "lock_id=$LOCK_ID" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Initialize Terraform
+      run: terraform init
+      shell: bash
+
+    - name: Run terraform force-unlock
+      run: terraform force-unlock -force ${{ steps.get-lock-id.outputs.lock_id }}
+      shell: bash
+
+inputs:
+  lock-id-key:
+    description: Lock ID key to retrieve from DynamoDB
+    required: true
+  table-name:
+    description: DynamoDB table name for the lock
+    required: true
